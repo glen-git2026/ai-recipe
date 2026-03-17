@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: chefs-lab-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_API_URL
+        value: https://api.groq.com/openai/v1/chat/completions

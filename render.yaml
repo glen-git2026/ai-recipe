@@ -7,9 +7,9 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     envVars:
-      - key: GROQ_API_KEY
+      - key: HF_API_KEY
         sync: false
-      - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
-      - key: GROQ_API_URL
-        value: https://api.groq.com/openai/v1/chat/completions
+      - key: HF_MODEL
+        value: Qwen/Qwen2.5-7B-Instruct
+      - key: HF_API_URL
+        value: https://api-inference.huggingface.co/models/Qwen/Qwen2.5-7B-Instruct

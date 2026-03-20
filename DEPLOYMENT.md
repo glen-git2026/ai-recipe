@@ -2,7 +2,7 @@
 
 This project is prepared for a split deployment:
 - Frontend (Next.js): Vercel
-- Backend API (Groq): Render
+- Backend API (Hugging Face): Render
 
 ## 1) Deploy Backend to Render
 
@@ -12,7 +12,7 @@ Backend source is in `backend/`.
 1. In Render, create a new Blueprint and select this repo.
 2. Render will detect `render.yaml`.
 3. Set secret env var:
-   - `GROQ_API_KEY` = your Groq key
+   - `HF_API_KEY` = your Hugging Face key
 4. Deploy.
 
 ### Option B: Manual Web Service
@@ -21,9 +21,9 @@ Backend source is in `backend/`.
 3. Build Command: `npm install`
 4. Start Command: `npm start`
 5. Add env vars:
-   - `GROQ_API_KEY` (required)
-   - `GROQ_MODEL` (optional, default: `llama-3.3-70b-versatile`)
-   - `GROQ_API_URL` (optional)
+   - `HF_API_KEY` (required)
+   - `HF_MODEL` (optional, default: `Qwen/Qwen2.5-7B-Instruct`)
+   - `HF_API_URL` (optional)
 
 After deploy, copy the backend URL, for example:
 `https://chefs-lab-api.onrender.com`
@@ -42,7 +42,7 @@ The frontend route `app/api/generate` will proxy to:
 ## 3) Local Development
 
 ### Backend
-1. Copy `backend/.env.example` to `backend/.env` and fill `GROQ_API_KEY`.
+1. Copy `backend/.env.example` to `backend/.env` and fill `HF_API_KEY`.
 2. Run backend:
    - `cd backend`
    - `npm install`

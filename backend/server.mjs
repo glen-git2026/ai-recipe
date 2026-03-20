@@ -1,10 +1,9 @@
 import { createServer } from "node:http";
 
 const PORT = Number(process.env.PORT || 8000);
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-const GROQ_API_URL =
-  process.env.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
+const HF_API_KEY = process.env.HF_API_KEY;
+const HF_MODEL = process.env.HF_MODEL || "Qwen/Qwen2.5-7B-Instruct";
+const HF_API_URL = process.env.HF_API_URL || `https://api-inference.huggingface.co/models/${HF_MODEL}`;
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -125,9 +124,9 @@ function parseModelJson(content) {
   }
 }
 
-async function callGroq(ingredients) {
-  if (!GROQ_API_KEY) {
-    throw new Error("Missing GROQ_API_KEY on backend");
+async function callHuggingFace(ingredients) {
+  if (!HF_API_KEY) {
+    throw new Error("Missing HF_API_KEY on backend");
   }
 
   const systemPrompt = `You are Chef Atlas, a precise culinary assistant.
@@ -161,32 +160,43 @@ Exact JSON schema:
       ? `User ingredients/input: ${ingredients.join(", ")}`
       : "User input: Provide a helpful response. If no food context, use chat mode.";
 
-  const response = await fetch(GROQ_API_URL, {
+  const prompt = `${systemPrompt}\n\n${userPrompt}`;
+
+  const response = await fetch(HF_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${HF_API_KEY}`,
     },
     body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0.3,
-      max_tokens: 1000,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
+      inputs: prompt,
+      parameters: {
+        temperature: 0.3,
+        max_new_tokens: 1000,
+        return_full_text: false,
+      },
+      options: {
+        wait_for_model: true,
+      },
     }),
   });
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(`Groq request failed (${response.status}): ${message}`);
+    throw new Error(`Hugging Face request failed (${response.status}): ${message}`);
   }
 
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
+  if (data?.error) {
+    throw new Error(`Hugging Face error: ${data.error}`);
+  }
+
+  const content = Array.isArray(data)
+    ? data?.[0]?.generated_text
+    : data?.generated_text;
+
   if (!content || typeof content !== "string") {
-    throw new Error("Groq returned an empty response");
+    throw new Error("Hugging Face returned an empty response");
   }
 
   return parseModelJson(content);
@@ -207,7 +217,7 @@ const server = createServer(async (req, res) => {
     try {
       const body = await readJsonBody(req);
       const ingredients = normalizeIngredients(body?.ingredients);
-      const modelData = await callGroq(ingredients);
+      const modelData = await callHuggingFace(ingredients);
       const recipe =
         modelData.mode === "chat"
           ? buildConversationRecipe(
@@ -218,7 +228,7 @@ const server = createServer(async (req, res) => {
       sendJson(res, 200, { recipe });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      sendJson(res, 502, { error: `Unable to generate content from Groq. ${message}` });
+      sendJson(res, 502, { error: `Unable to generate content from Hugging Face. ${message}` });
     }
     return;
   }
